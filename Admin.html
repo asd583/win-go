@@ -36,6 +36,17 @@ th { background:#222; }
   <h2>Wingo Game</h2>
   <div id="balance"></div>
   <label>Bet Amount: <input type="number" id="betAmount" value="50000" min="30000"></label>
+  
+  <!-- Bet Buttons -->
+  <h3>Add Bet</h3>
+  <div id="betButtons">
+    <button onclick="addBet(10)">+10</button>
+    <button onclick="addBet(100)">+100</button>
+    <button onclick="addBet(1000)">+1,000</button>
+    <button onclick="addBet(10000)">+10,000</button>
+  </div>
+  <div id="currentBet">Current Bet: 0 MMK</div>
+
   <div id="timer">30</div>
   <h3>Predict Size</h3>
   <button onclick="placeBet('Big')">Big</button>
@@ -80,6 +91,8 @@ let currentUser = '';
 let balance = 100000;
 let userBet = null;
 let betAmount = 50000;
+let currentBetAmount = 0;
+let bettingStopped = false;
 let historyArr = [];
 let roundCount = 0;
 let lastNumber = null;
@@ -149,12 +162,26 @@ function updateBalance(){
     localStorage.setItem(currentUser+'_balance', balance);
 }
 
+// --- Betting functions ---
+function addBet(amount){
+    if(bettingStopped){
+        alert("Betting is closed for this round!");
+        return;
+    }
+    currentBetAmount += amount;
+    document.getElementById('currentBet').textContent = `Current Bet: ${currentBetAmount.toLocaleString()} MMK`;
+}
+
 function placeBet(choice){
-    betAmount=parseInt(document.getElementById('betAmount').value)||30000;
-    if(betAmount<30000){ alert("Minimum bet 30,000"); return; }
-    if(betAmount>balance){ alert("Insufficient balance"); return; }
-    userBet=choice;
-    document.getElementById('resultSection').textContent=`You bet ${betAmount.toLocaleString()} on ${choice}`;
+    if(bettingStopped){
+        alert("Betting is closed for this round!");
+        return;
+    }
+    betAmount = currentBetAmount;
+    if(betAmount < 30000){ alert("Minimum bet 30,000"); return; }
+    if(betAmount > balance){ alert("Insufficient balance"); return; }
+    userBet = choice;
+    document.getElementById('resultSection').textContent = `You bet ${betAmount.toLocaleString()} on ${choice}`;
 }
 
 // --- Myanmar Time & Rounds ---
@@ -173,27 +200,29 @@ function startRoundClock(){
     const timerEl=document.getElementById('timer');
     function updateTimer(){
         const countdown = getRoundCountdown();
-        timerEl.textContent=countdown;
-        if(countdown===1) playRound();
+        timerEl.textContent = countdown;
+        bettingStopped = countdown <= 7; // stop betting when ≤ 7 seconds
+        if(countdown===1) {
+            currentBetAmount = 0;
+            document.getElementById('currentBet').textContent = `Current Bet: 0 MMK`;
+            playRound();
+        }
     }
     updateTimer();
     setInterval(updateTimer,1000);
 }
 
-// --- Generate Next Round ---
+// --- Next Round ---
 function generateNextRound() {
     const sizes=['Big','Small'];
     const colors=['Red','Green','Purple'];
     const numbers=[0,1,2,3,4,5,6,7,8,9];
-
     const sizeResult = sizes[Math.floor(Math.random()*sizes.length)];
     const colorResult = colors[Math.floor(Math.random()*colors.length)];
     const numberResult = numbers[Math.floor(Math.random()*numbers.length)];
-
     nextRound = {size:sizeResult, color:colorResult, number:numberResult};
 }
 
-// --- Display Next Round (Admin only) ---
 function displayNextRound(){
     if(role==='admin'){
         const nextDiv = document.getElementById('nextRound');
@@ -208,7 +237,7 @@ function playRound(){
     const colorResult = nextRound.color;
     const numberResult = nextRound.number;
 
-    generateNextRound(); // generate next for future
+    generateNextRound(); // next round
     displayNextRound();
 
     if(numberResult===lastNumber) numberSerial++; else { numberSerial=1; lastNumber=numberResult; }
@@ -241,4 +270,61 @@ function renderHistory(){
     historyArr.forEach(h=>{
         const li=document.createElement('li');
         li.textContent=`Round ${h.round}: Bet:${h.userBet} Amt:${h.amount.toLocaleString()} → Size:${h.size}, Color:${h.color}, Number:${h.number} (#${h.numberSerial},#${h.colorSerial}) → ${h.win?'WIN':'LOSE'}`;
-        ul.appendChild
+        ul.appendChild(li);
+    });
+}
+
+// --- Daily Reset ---
+function checkDailyReset(){
+    const mmt=getMyanmarTime();
+    if(mmt.getHours()===6 && mmt.getMinutes()===30){
+        historyArr=[]; roundCount=0; numberSerial=0;colorSerial=0; lastNumber=null;lastColor=null;
+        renderHistory();
+    }
+}
+
+// --- Admin Functions ---
+function loadPlayers(){
+    const tbody=document.querySelector('#playersTable tbody');
+    tbody.innerHTML='';
+    for(const key in localStorage){
+        if(key.endsWith('_balance')){
+            const player = key.replace('_balance','');
+            const bal = parseInt(localStorage.getItem(key));
+            const tr=document.createElement('tr');
+            tr.innerHTML=`<td>${player}</td><td id="${player}_bal">${bal.toLocaleString()}</td>
+            <td><input type="number" id="${player}_input" value="0"></td>
+            <td><button onclick="updateBalanceAdmin('${player}')">Update</button></td>`;
+            tbody.appendChild(tr);
+        }
+    }
+}
+
+function updateBalanceAdmin(player){
+    const val=parseInt(document.getElementById(player+'_input').value)||0;
+    let bal=parseInt(localStorage.getItem(player+'_balance')||0);
+    bal += val;
+    localStorage.setItem(player+'_balance', bal);
+    loadPlayers();
+}
+
+function loadHistory(){
+    const tbody=document.querySelector('#historyTable tbody');
+    tbody.innerHTML='';
+    const allBets=JSON.parse(localStorage.getItem('bets')||'[]');
+    allBets.slice(-50).reverse().forEach(b=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${b.round}</td><td>${b.player}</td><td>${b.bet}</td><td>${b.amount}</td>
+        <td>${b.size}</td><td>${b.color}</td><td>${b.number}</td><td>${b.win?'WIN':'LOSE'}</td>
+        <td>${b.numberSerial}</td><td>${b.colorSerial}</td><td>${b.timestamp}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+// Initialize
+generateNextRound();
+displayNextRound();
+</script>
+
+</body>
+</html>
