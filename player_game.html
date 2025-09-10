@@ -114,21 +114,52 @@ function placeBet(choice){
   document.getElementById('resultSection').classList.add('slide');
 }
 
-// --- Myanmar Time Based Round ---
+// --- Myanmar Time ---
 function getMyanmarTime() {
     const now = new Date();
     return new Date(now.getTime() + 6.5*60*60*1000); // UTC+6:30
+}
+
+// --- Daily Reset at 6:30 AM MMT ---
+function checkDailyReset() {
+    const mmt = getMyanmarTime();
+    const hour = mmt.getHours();
+    const minute = mmt.getMinutes();
+
+    if(hour === 6 && minute === 30){
+        historyArr = [];
+        roundCount = 0;
+        lastNumber = null;
+        lastColor = null;
+        numberSerial = 0;
+        colorSerial = 0;
+        renderHistory();
+        console.log("Daily reset at 6:30 AM MMT completed.");
+    }
+}
+setInterval(checkDailyReset, 60*1000); // check every minute
+
+// --- Countdown & Rounds ---
+function getRoundCountdown() {
+    const mmt = getMyanmarTime();
+    const startOfDay = new Date(mmt);
+    startOfDay.setHours(6,30,0,0); // 6:30 AM Myanmar Time
+
+    const diffSec = Math.floor((mmt - startOfDay)/1000);
+    let countdown = ROUND_DURATION - (diffSec % ROUND_DURATION);
+    if(countdown === 0) countdown = ROUND_DURATION;
+    return countdown;
 }
 
 function startRoundClock() {
     const timerEl = document.getElementById('timer');
 
     function updateTimer() {
-        const mmtNow = getMyanmarTime();
-        const seconds = mmtNow.getSeconds();
-        const countdown = ROUND_DURATION - (seconds % ROUND_DURATION);
+        const countdown = getRoundCountdown();
         timerEl.textContent = countdown;
-        if(countdown === 0) playRound();
+        if(countdown === 1){ // trigger round
+            playRound();
+        }
     }
 
     updateTimer();
@@ -146,7 +177,7 @@ function playRound(){
   const colorResult = colors[Math.floor(Math.random()*colors.length)];
   const numberResult = numbers[Math.floor(Math.random()*numbers.length)];
 
-  // Check serials
+  // Serial tracking
   if(numberResult === lastNumber){ numberSerial++; } else { numberSerial = 1; lastNumber = numberResult; }
   if(colorResult === lastColor){ colorSerial++; } else { colorSerial = 1; lastColor = colorResult; }
 
@@ -164,36 +195,15 @@ function playRound(){
   if(historyArr.length>10) historyArr.pop();
   renderHistory();
 
-  // Save for admin
+  // Admin tracking
   const allBets = JSON.parse(localStorage.getItem('bets')||'[]');
   allBets.push({
     player, bet:userBet, amount:betAmount,
     size:sizeResult, color:colorResult, number:numberResult,
-    win, timestamp:new Date().toLocaleString(),
+    win, timestamp:getMyanmarTime().toLocaleString(),
     balance, numberSerial, colorSerial
   });
   localStorage.setItem('bets', JSON.stringify(allBets));
 
   document.getElementById('result').textContent=
-    `Round ${roundCount} → Size: ${sizeResult}, Color: ${colorResult}, Number: ${numberResult}. ${win?'WIN!':'LOSE!'}`;
-  userBet=null;
-}
-
-// --- Render History ---
-function renderHistory(){
-  const ul = document.getElementById('historyList');
-  ul.innerHTML='';
-  historyArr.forEach(h=>{
-    const li=document.createElement('li');
-    li.textContent=
-      `Round ${h.round}: Bet:${h.playerBet} Amt:${h.amount.toLocaleString()} → Result: Size:${h.size}, Color:${h.color} (#${h.colorSerial}), Number:${h.number} (#${h.numberSerial}) → ${h.win?'WIN':'LOSE'}`;
-    ul.appendChild(li);
-  });
-}
-
-// --- Start Game ---
-updateBalance();
-startRoundClock();
-</script>
-</body>
-</html>
+    `Round ${
