@@ -1,0 +1,8 @@
+<script>
+let player = localStorage.getItem('currentUser');
+if(!player){
+  // Not logged in → redirect to sign in page
+  window.location.href="signin.html";
+}
+document.getElementById('welcome').textContent = `Welcome, ${player}!`;
+</script>
