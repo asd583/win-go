@@ -1,38 +1,36 @@
-<div id="numbers"></div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wingo Game</title>
+<style>
+body { font-family: Arial, sans-serif; background:#111; color:white; text-align:center; margin:0; padding:0; }
+header { background:#00ffc3; color:#111; padding:10px; font-size:1.2rem; font-weight:bold; }
+h1 { margin:20px 0; color:#00ffc3; }
+#balance { margin:15px 0; font-size:1.2rem; }
+button { border:none; border-radius:15px; padding:12px 25px; margin:5px; font-size:1rem; cursor:pointer; transition:0.2s; }
+button:hover { transform:scale(1.05); }
+.big { background:#ff4d4d; } .small { background:#4d79ff; }
+.red { background:#ff1a1a; } .green { background:#33cc33; } .purple { background:#9933ff; }
+.number { color:white; font-weight:bold; }
+#timer { font-size:2rem; margin:10px; }
+#betSection, #resultSection { margin:15px auto; width:95%; max-width:600px; padding:15px; background:#222; border-radius:15px; }
+#history ul { list-style:none; padding:0; max-height:150px; overflow-y:auto; }
+#history li { background:#333; margin:3px 0; padding:5px 10px; border-radius:10px; text-align:left; }
+.slide { animation:slideUp 0.5s forwards; }
+@keyframes slideUp { from {transform:translateY(100%);} to {transform:translateY(0);} }
+.number-grid { display:flex; flex-wrap:wrap; justify-content:center; }
+.number-grid button { width:60px; height:60px; border-radius:50%; margin:5px; font-weight:bold; font-size:1.1rem; cursor:pointer; transition:0.2s; }
+.number-grid button:hover { transform:scale(1.1); }
+</style>
+</head>
+<body>
 
-<script>
-function initNumbers(){
-  const container = document.getElementById('numbers');
-  container.innerHTML = '';
-  for(let i=0;i<=9;i++){
-    const btn = document.createElement('button');
-    btn.textContent = i;
-    btn.className='number';
-    
-    // Assign colors based on number
-    if(i === 0 || i === 5){
-      btn.style.background='rebeccapurple';  // pale purple
-      btn.style.color='white';
-    } else if(i >= 0 && i <= 4){
-      btn.style.background='red';
-      btn.style.color='white';
-    } else if(i >=5 && i <=6){
-      btn.style.background='green';
-      btn.style.color='white';
-    } else {
-      btn.style.background='#ffaa00'; // default color for others
-      btn.style.color='#111';
-    }
-    
-    btn.style.borderRadius='50%'; // make button round
-    btn.style.width='50px';
-    btn.style.height='50px';
-    btn.style.margin='5px';
-    btn.style.fontWeight='bold';
-    btn.onclick = ()=>placeBet(i);
-    
-    container.appendChild(btn);
-  }
-}
-initNumbers();
-</script>
+<header id="welcome"></header>
+<h1>Wingo Game</h1>
+<div id="balance"></div>
+
+<div id="betSection">
+  <label>Bet Amount: <input type="number" id="betAmount" value="50000" min="30000"></label>
+  <div id="timer">30</div
