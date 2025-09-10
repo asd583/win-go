@@ -22,16 +22,15 @@ th { background:#222; }
 
 <header id="headerTitle">Wingo Login</header>
 
+<!-- Login -->
 <div id="loginDiv" class="container">
   <h2>Login</h2>
   <input type="text" id="username" placeholder="Email / Phone"><br>
   <input type="password" id="password" placeholder="Password"><br>
   <button onclick="login()">Login</button>
-  <p>
-</p>
-
 </div>
 
+<!-- Player Section -->
 <div id="playerDiv" class="container hidden">
   <h2>Wingo Game</h2>
   <div id="balance"></div>
@@ -53,6 +52,7 @@ th { background:#222; }
   </div>
 </div>
 
+<!-- Admin Section -->
 <div id="adminDiv" class="container hidden">
   <h2>Admin Dashboard</h2>
   <h3>Players</h3>
@@ -86,31 +86,38 @@ let numberSerial = 0;
 let colorSerial = 0;
 const ROUND_DURATION = 30;
 
+// --- Admin credentials (hidden, hardcoded) ---
+const ADMIN_USERNAME = "Naing";
+const ADMIN_PASSWORD = "28";
+
 // --- Login Function ---
 function login(){
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value.trim();
-    if(username === 'admin' && password === '12345'){
+
+    // Admin login
+    if(username === ADMIN_USERNAME && password === ADMIN_PASSWORD){
         role = 'admin';
         document.getElementById('loginDiv').classList.add('hidden');
         document.getElementById('adminDiv').classList.remove('hidden');
         loadPlayers();
         loadHistory();
         setInterval(()=>{ loadPlayers(); loadHistory(); },3000);
-    } else {
-        // player login
-        role = 'player';
-        currentUser = username;
-        localStorage.setItem('currentUser', currentUser);
-        const bal = parseInt(localStorage.getItem(currentUser+'_balance')||'100000');
-        balance = bal;
-        document.getElementById('loginDiv').classList.add('hidden');
-        document.getElementById('playerDiv').classList.remove('hidden');
-        initNumbers();
-        updateBalance();
-        startRoundClock();
-        setInterval(checkDailyReset, 60*1000);
+        return;
     }
+
+    // Player login
+    role = 'player';
+    currentUser = username;
+    localStorage.setItem('currentUser', currentUser);
+    const bal = parseInt(localStorage.getItem(currentUser+'_balance')||'100000');
+    balance = bal;
+    document.getElementById('loginDiv').classList.add('hidden');
+    document.getElementById('playerDiv').classList.remove('hidden');
+    initNumbers();
+    updateBalance();
+    startRoundClock();
+    setInterval(checkDailyReset, 60*1000);
 }
 
 // --- Player Functions ---
@@ -198,39 +205,3 @@ function renderHistory(){
     const ul=document.getElementById('historyList');
     if(!ul) return;
     ul.innerHTML='';
-    historyArr.forEach(h=>{
-        const li=document.createElement('li');
-        li.textContent=`Round ${h.round}: Bet:${h.userBet} Amt:${h.amount.toLocaleString()} → Size:${h.size}, Color:${h.color}, Number:${h.number} (#${h.numberSerial},#${h.colorSerial}) → ${h.win?'WIN':'LOSE'}`;
-        ul.appendChild(li);
-    });
-}
-
-// --- Daily Reset ---
-function checkDailyReset(){
-    const mmt=getMyanmarTime();
-    if(mmt.getHours()===6 && mmt.getMinutes()===30){
-        historyArr=[]; roundCount=0; numberSerial=0;colorSerial=0; lastNumber=null;lastColor=null;
-        renderHistory();
-    }
-}
-
-// --- Admin Functions ---
-function loadPlayers(){
-    const tbody=document.querySelector('#playersTable tbody');
-    tbody.innerHTML='';
-    for(const key in localStorage){
-        if(key.endsWith('_balance')){
-            const player = key.replace('_balance','');
-            const bal = parseInt(localStorage.getItem(key));
-            const tr=document.createElement('tr');
-            tr.innerHTML=`<td>${player}</td><td id="${player}_bal">${bal.toLocaleString()}</td>
-            <td><input type="number" id="${player}_input" value="0"></td>
-            <td><button onclick="updateBalanceAdmin('${player}')">Update</button></td>`;
-            tbody.appendChild(tr);
-        }
-    }
-}
-
-function updateBalanceAdmin(player){
-    const val=parseInt(document.getElementById(player+'_input').value)||0;
-    let bal=parseInt(localStorage.getItem(player+'_balance')
