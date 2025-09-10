@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wingo Admin</title>
+<style>
+body { background:#111; color:white; font-family:sans-serif; text-align:center; }
+h1 { color:#00ffc3; }
+table { width:95%; margin:20px auto; border-collapse:collapse; }
+th,td { border:1px solid #444; padding:10px; text-align:center; }
+th { background:#222; }
+</style>
+</head>
+<body>
+<h1>Admin Dashboard</h1>
+<table>
+<thead>
+<tr>
+  <th>Player</th><th>Bet</th><th>Amount</th><th>Size</th><th>Color</th><th>Number</th><th>Win/Lose</th><th>Balance</th><th>Time</th>
+</tr>
+</thead>
+<tbody id="betsTable"></tbody>
+</table>
+
+<script>
+function loadBets(){
+  const bets = JSON.parse(localStorage.getItem('bets')||'[]');
+  const tbody=document.getElementById('betsTable');
+  tbody.innerHTML='';
+  bets.slice(-50).forEach(b=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${b.player}</td><td>${b.bet}</td><td>${b.amount}</td><td>${b.size}</td><td>${b.color}</td><td>${b.number}</td><td>${b.win?'WIN':'LOSE'}</td><td>${b.balance}</td><td>${b.timestamp}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+loadBets();
+setInterval(loadBets,2000); // live update
+</script>
+</body>
+</html>
