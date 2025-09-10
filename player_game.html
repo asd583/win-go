@@ -21,7 +21,7 @@ button:hover { transform:scale(1.05); }
 .slide { animation:slideUp 0.5s forwards; }
 @keyframes slideUp { from {transform:translateY(100%);} to {transform:translateY(0);} }
 .number-grid { display:flex; flex-wrap:wrap; justify-content:center; }
-.number-grid button { width:60px; height:60px; border-radius:50%; margin:5px; font-weight:bold; font-size:1.1rem; cursor:pointer; transition:0.2s; }
+.number-grid button { width:60px; height:60px; border-radius:50%; margin:5px; font-weight:bold; font-size:1.1rem; cursor:pointer; transition:0.2s; position:relative; }
 .number-grid button:hover { transform:scale(1.1); }
 </style>
 </head>
@@ -65,14 +65,13 @@ document.getElementById('welcome').textContent = `Welcome, ${player}!`;
 let balance = parseInt(localStorage.getItem(player+'_balance')||'100000');
 let userBet = null;
 let betAmount = 50000;
-let countdown = 30;
 let historyArr = [];
-
 let roundCount = 0;
 let lastNumber = null;
 let lastColor = null;
 let numberSerial = 0;
 let colorSerial = 0;
+const ROUND_DURATION = 30; // seconds
 
 // --- Functions ---
 function initNumbers(){
@@ -92,7 +91,9 @@ function initNumbers(){
     } else if(i>=6 && i<=9){
       btn.style.background='green';
     }
-    
+
+    // Glow for visibility
+    btn.style.boxShadow = '0 0 6px 2px rgba(255,255,255,0.5)';
     btn.onclick = ()=>placeBet(i);
     container.appendChild(btn);
   }
@@ -113,17 +114,28 @@ function placeBet(choice){
   document.getElementById('resultSection').classList.add('slide');
 }
 
-function startTimer(){
-  setInterval(()=>{
-    document.getElementById('timer').textContent = countdown;
-    countdown--;
-    if(countdown<0){
-      countdown=30;
-      playRound();
-    }
-  },1000);
+// --- Myanmar Time Based Round ---
+function getMyanmarTime() {
+    const now = new Date();
+    return new Date(now.getTime() + 6.5*60*60*1000); // UTC+6:30
 }
 
+function startRoundClock() {
+    const timerEl = document.getElementById('timer');
+
+    function updateTimer() {
+        const mmtNow = getMyanmarTime();
+        const seconds = mmtNow.getSeconds();
+        const countdown = ROUND_DURATION - (seconds % ROUND_DURATION);
+        timerEl.textContent = countdown;
+        if(countdown === 0) playRound();
+    }
+
+    updateTimer();
+    setInterval(updateTimer, 1000);
+}
+
+// --- Play Round ---
 function playRound(){
   roundCount++;
   const sizes=['Big','Small'];
@@ -167,6 +179,7 @@ function playRound(){
   userBet=null;
 }
 
+// --- Render History ---
 function renderHistory(){
   const ul = document.getElementById('historyList');
   ul.innerHTML='';
@@ -178,37 +191,9 @@ function renderHistory(){
   });
 }
 
+// --- Start Game ---
 updateBalance();
-startTimer();
+startRoundClock();
 </script>
 </body>
 </html>
-
-// --- Myanmar Time Based Countdown ---
-function getMyanmarTime() {
-    const now = new Date();
-    // Convert UTC to MMT (UTC+6:30)
-    const mmtTime = new Date(now.getTime() + 6.5*60*60*1000);
-    return mmtTime;
-}
-
-// Game settings
-const ROUND_DURATION = 30; // seconds
-
-function startRoundClock() {
-    const timerEl = document.getElementById('timer');
-
-    function updateTimer() {
-        const mmtNow = getMyanmarTime();
-        const seconds = mmtNow.getSeconds();
-        const countdown = ROUND_DURATION - (seconds % ROUND_DURATION);
-        timerEl.textContent = countdown;
-
-        if(countdown === 0) playRound();
-    }
-
-    updateTimer(); // initialize immediately
-    setInterval(updateTimer, 1000);
-}
-
-startRoundClock();
