@@ -16,6 +16,7 @@ th, td { border:1px solid #444; padding:5px; text-align:center; }
 th { background:#222; }
 .number-grid { display:flex; flex-wrap:wrap; justify-content:center; margin-top:10px; }
 .number-grid button { width:50px; height:50px; border-radius:50%; margin:3px; font-weight:bold; font-size:1rem; box-shadow:0 0 6px 2px rgba(255,255,255,0.5); }
+#nextRound { margin:15px; font-weight:bold; color:#00ffc3; font-size:1.2rem; }
 </style>
 </head>
 <body>
@@ -54,6 +55,7 @@ th { background:#222; }
 
 <!-- Admin Section -->
 <div id="adminDiv" class="container hidden">
+  <div id="nextRound"></div>
   <h2>Admin Dashboard</h2>
   <h3>Players</h3>
   <table id="playersTable">
@@ -86,9 +88,12 @@ let numberSerial = 0;
 let colorSerial = 0;
 const ROUND_DURATION = 30;
 
-// --- Admin credentials (hidden, hardcoded) ---
+// --- Admin credentials (hidden) ---
 const ADMIN_USERNAME = "Naing";
 const ADMIN_PASSWORD = "28";
+
+// --- Next round result ---
+let nextRound = {};
 
 // --- Login Function ---
 function login(){
@@ -100,9 +105,11 @@ function login(){
         role = 'admin';
         document.getElementById('loginDiv').classList.add('hidden');
         document.getElementById('adminDiv').classList.remove('hidden');
+        generateNextRound();
+        displayNextRound();
         loadPlayers();
         loadHistory();
-        setInterval(()=>{ loadPlayers(); loadHistory(); },3000);
+        setInterval(()=>{ loadPlayers(); loadHistory(); displayNextRound(); },3000);
         return;
     }
 
@@ -116,6 +123,7 @@ function login(){
     document.getElementById('playerDiv').classList.remove('hidden');
     initNumbers();
     updateBalance();
+    generateNextRound();
     startRoundClock();
     setInterval(checkDailyReset, 60*1000);
 }
@@ -172,12 +180,36 @@ function startRoundClock(){
     setInterval(updateTimer,1000);
 }
 
-function playRound(){
-    roundCount++;
-    const sizes=['Big','Small'], colors=['Red','Green','Purple'], numbers=[0,1,2,3,4,5,6,7,8,9];
+// --- Generate Next Round ---
+function generateNextRound() {
+    const sizes=['Big','Small'];
+    const colors=['Red','Green','Purple'];
+    const numbers=[0,1,2,3,4,5,6,7,8,9];
+
     const sizeResult = sizes[Math.floor(Math.random()*sizes.length)];
     const colorResult = colors[Math.floor(Math.random()*colors.length)];
     const numberResult = numbers[Math.floor(Math.random()*numbers.length)];
+
+    nextRound = {size:sizeResult, color:colorResult, number:numberResult};
+}
+
+// --- Display Next Round (Admin only) ---
+function displayNextRound(){
+    if(role==='admin'){
+        const nextDiv = document.getElementById('nextRound');
+        nextDiv.textContent = `Next Winning Number: ${nextRound.number} | Color: ${nextRound.color} | Size: ${nextRound.size}`;
+    }
+}
+
+// --- Play Round ---
+function playRound(){
+    roundCount++;
+    const sizeResult = nextRound.size;
+    const colorResult = nextRound.color;
+    const numberResult = nextRound.number;
+
+    generateNextRound(); // generate next for future
+    displayNextRound();
 
     if(numberResult===lastNumber) numberSerial++; else { numberSerial=1; lastNumber=numberResult; }
     if(colorResult===lastColor) colorSerial++; else { colorSerial=1; lastColor=colorResult; }
@@ -191,7 +223,6 @@ function playRound(){
     if(historyArr.length>10) historyArr.pop();
     renderHistory();
 
-    // save to localStorage for admin
     const allBets=JSON.parse(localStorage.getItem('bets')||'[]');
     allBets.push({
         player:currentUser,bet:userBet,amount:betAmount,size:sizeResult,color:colorResult,number:numberResult,
@@ -199,9 +230,15 @@ function playRound(){
     });
     localStorage.setItem('bets', JSON.stringify(allBets));
     userBet=null;
+    if(role==='admin') loadHistory();
 }
 
+// --- Render History ---
 function renderHistory(){
     const ul=document.getElementById('historyList');
     if(!ul) return;
     ul.innerHTML='';
+    historyArr.forEach(h=>{
+        const li=document.createElement('li');
+        li.textContent=`Round ${h.round}: Bet:${h.userBet} Amt:${h.amount.toLocaleString()} → Size:${h.size}, Color:${h.color}, Number:${h.number} (#${h.numberSerial},#${h.colorSerial}) → ${h.win?'WIN':'LOSE'}`;
+        ul.appendChild
