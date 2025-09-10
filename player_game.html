@@ -33,4 +33,135 @@ button:hover { transform:scale(1.05); }
 
 <div id="betSection">
   <label>Bet Amount: <input type="number" id="betAmount" value="50000" min="30000"></label>
-  <div id="timer">30</div
+  <div id="timer">30</div>
+
+  <h2>Predict Size</h2>
+  <button class="big" onclick="placeBet('Big')">Big</button>
+  <button class="small" onclick="placeBet('Small')">Small</button>
+
+  <h2>Predict Color</h2>
+  <button class="red" onclick="placeBet('Red')">Red</button>
+  <button class="green" onclick="placeBet('Green')">Green</button>
+  <button class="purple" onclick="placeBet('Purple')">Purple</button>
+
+  <h2>Predict Number (0-9)</h2>
+  <div id="numbers" class="number-grid"></div>
+</div>
+
+<div id="resultSection">
+  <div id="result"></div>
+  <div id="history">
+    <h3>Last 10 Outcomes:</h3>
+    <ul id="historyList"></ul>
+  </div>
+</div>
+
+<script>
+// --- Initialization ---
+let player = localStorage.getItem('currentUser');
+if(!player){ window.location.href="signin.html"; }
+document.getElementById('welcome').textContent = `Welcome, ${player}!`;
+
+let balance = parseInt(localStorage.getItem(player+'_balance')||'100000');
+let userBet = null;
+let betAmount = 50000;
+let countdown = 30;
+let historyArr = [];
+
+// --- Functions ---
+function initNumbers(){
+  const container = document.getElementById('numbers');
+  container.innerHTML = '';
+  for(let i=0;i<=9;i++){
+    const btn = document.createElement('button');
+    btn.textContent = i;
+
+    // Dual-color logic
+    if(i===0){
+      btn.style.background='linear-gradient(135deg, red 50%, rebeccapurple 50%)';
+    } else if(i>=1 && i<=4){
+      btn.style.background='red';
+    } else if(i===5){
+      btn.style.background='linear-gradient(135deg, green 50%, rebeccapurple 50%)';
+    } else if(i>=6 && i<=9){
+      btn.style.background='green';
+    }
+    
+    btn.onclick = ()=>placeBet(i);
+    container.appendChild(btn);
+  }
+}
+initNumbers();
+
+function updateBalance(){
+  document.getElementById('balance').textContent = `Balance: ${balance.toLocaleString()} MMK`;
+  localStorage.setItem(player+'_balance', balance);
+}
+
+function placeBet(choice){
+  betAmount = parseInt(document.getElementById('betAmount').value) || 30000;
+  if(betAmount < 30000){ alert("Minimum bet is 30,000 MMK"); return; }
+  if(betAmount > balance){ alert("Insufficient balance"); return; }
+  userBet = choice;
+  document.getElementById('result').textContent = `You bet ${betAmount.toLocaleString()} MMK on ${choice}`;
+  document.getElementById('resultSection').classList.add('slide');
+}
+
+function startTimer(){
+  setInterval(()=>{
+    document.getElementById('timer').textContent = countdown;
+    countdown--;
+    if(countdown<0){
+      countdown=30;
+      playRound();
+    }
+  },1000);
+}
+
+function playRound(){
+  const sizes=['Big','Small'];
+  const colors=['Red','Green','Purple'];
+  const numbers=[0,1,2,3,4,5,6,7,8,9];
+
+  const sizeResult = sizes[Math.floor(Math.random()*sizes.length)];
+  const colorResult = colors[Math.floor(Math.random()*colors.length)];
+  const numberResult = numbers[Math.floor(Math.random()*numbers.length)];
+
+  let win=false;
+  if(userBet===sizeResult || userBet===colorResult || userBet===numberResult) win=true;
+  if(win) balance += betAmount; else balance -= betAmount;
+  updateBalance();
+
+  historyArr.unshift({size:sizeResult, color:colorResult, number:numberResult, win});
+  if(historyArr.length>10) historyArr.pop();
+  renderHistory();
+
+  // Save for admin
+  const allBets = JSON.parse(localStorage.getItem('bets')||'[]');
+  allBets.push({
+    player, bet:userBet, amount:betAmount,
+    size:sizeResult, color:colorResult, number:numberResult,
+    win, timestamp:new Date().toLocaleString(), balance
+  });
+  localStorage.setItem('bets', JSON.stringify(allBets));
+
+  document.getElementById('result').textContent=
+    `Round Result → Size: ${sizeResult}, Color: ${colorResult}, Number: ${numberResult}. ${win?'WIN!':'LOSE!'}`;
+  userBet=null;
+}
+
+function renderHistory(){
+  const ul = document.getElementById('historyList');
+  ul.innerHTML='';
+  historyArr.forEach(h=>{
+    const li=document.createElement('li');
+    li.textContent=`Size:${h.size}, Color:${h.color}, Number:${h.number} → ${h.win?'WIN':'LOSE'}`;
+    ul.appendChild(li);
+  });
+}
+
+updateBalance();
+startTimer();
+</script>
+</body>
+</html>
