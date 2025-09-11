@@ -5,28 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Wingo Game - Player</title>
 <style>
-body { font-family: Arial, sans-serif; background:#111; color:white; text-align:center; margin:0; padding:0; }
-input, button { padding:8px; margin:5px; border-radius:5px; border:none; cursor:pointer; }
-button { margin:3px; }
+body { font-family: Arial; background:#111; color:white; text-align:center; margin:0; padding:0; }
 .container { padding:20px; }
+button,input { padding:8px; margin:5px; border-radius:5px; border:none; cursor:pointer; }
 .number-grid { display:flex; flex-wrap:wrap; justify-content:center; margin-top:10px; }
-.number-grid button {
-    width:60px; height:60px; border-radius:50%; margin:5px; font-weight:bold; font-size:1.2rem;
-    box-shadow:0 0 8px 3px rgba(255,255,255,0.5); transition: transform 0.2s, box-shadow 0.2s; border:none; cursor:pointer; color:white; border:2px solid #fff;
-}
+.number-grid button { width:60px;height:60px;border-radius:50%;margin:5px;font-weight:bold;font-size:1.2rem;box-shadow:0 0 8px 3px rgba(255,255,255,0.5);transition: transform 0.2s, box-shadow 0.2s;border:none;cursor:pointer;color:white;border:2px solid #fff; }
 .number-grid button:hover { transform: scale(1.1); box-shadow:0 0 12px 4px rgba(255,255,255,0.7); }
 </style>
 </head>
 <body>
 
-<div class="container" id="loginDiv">
-  <h2>Login</h2>
-  <input type="text" id="username" placeholder="Email / Phone"><br>
-  <input type="password" id="password" placeholder="Password"><br>
-  <button id="loginBtn">Login</button>
-</div>
-
-<div class="container hidden" id="playerDiv">
+<div class="container">
   <h2>Wingo Game</h2>
   <div id="balance"></div>
   <h3>Add Bet</h3>
@@ -55,35 +44,26 @@ button { margin:3px; }
 </div>
 
 <script>
-// Global variables
-let currentUser='', balance=100000, userBet=null, currentBetAmount=0, bettingStopped=false;
-let historyArr=[], roundCount=0, lastNumber=null, lastColor=null, numberSerial=0, colorSerial=0;
+// --- Global Variables ---
+let currentUser=localStorage.getItem('currentUser')||'Guest';
+let balance=parseInt(localStorage.getItem(currentUser+'_balance')||100000);
+let currentBetAmount=0;
+let userBet=null;
+let bettingStopped=false;
+let historyArr=[];
+let roundCount=0;
+let lastNumber=null,lastColor=null;
+let numberSerial=0,colorSerial=0;
 let nextRound={};
 
-// Login
-document.getElementById('loginBtn').addEventListener('click', function(){
-    const username=document.getElementById('username').value.trim();
-    const password=document.getElementById('password').value.trim();
-    if(!username || !password){ alert("Enter username/password"); return; }
+// --- Initialize ---
+updateBalance();
+initNumbers();
+generateNextRound();
+startRoundClock();
+setInterval(checkDailyReset,60000);
 
-    currentUser=username;
-    if(!localStorage.getItem(currentUser+'_balance')) localStorage.setItem(currentUser+'_balance',100000);
-    balance=parseInt(localStorage.getItem(currentUser+'_balance'));
-
-    document.getElementById('loginDiv').classList.add('hidden');
-    document.getElementById('playerDiv').classList.remove('hidden');
-
-    initPlayer();
-});
-
-function initPlayer(){
-    updateBalance();
-    initNumbers();
-    generateNextRound();
-    startRoundClock();
-    setInterval(checkDailyReset,60000);
-}
-
+// --- Functions ---
 function updateBalance(){
     document.getElementById('balance').textContent=`Balance: ${balance.toLocaleString()} MMK`;
     localStorage.setItem(currentUser+'_balance',balance);
@@ -97,11 +77,10 @@ function addBet(amount){
 
 function placeBet(choice){
     if(bettingStopped){ alert("Betting closed"); return; }
-    let betAmount=currentBetAmount;
-    if(betAmount<30000){ alert("Minimum bet 30,000"); return; }
-    if(betAmount>balance){ alert("Insufficient balance"); return; }
+    if(currentBetAmount<30000){ alert("Minimum bet 30,000"); return; }
+    if(currentBetAmount>balance){ alert("Insufficient balance"); return; }
     userBet=choice;
-    document.getElementById('resultSection').textContent=`You bet ${betAmount.toLocaleString()} on ${choice}`;
+    document.getElementById('resultSection').textContent=`You bet ${currentBetAmount.toLocaleString()} on ${choice}`;
 }
 
 function initNumbers(){
@@ -112,11 +91,11 @@ function initNumbers(){
         else if(i>=1 && i<=4) btn.style.background='red';
         else if(i===5) btn.style.background='linear-gradient(135deg, green 50%, rebeccapurple 50%)';
         else btn.style.background='green';
-        btn.onclick=()=>placeBet(i); container.appendChild(btn);
+        btn.onclick=()=>placeBet(i);
+        container.appendChild(btn);
     }
 }
 
-// Timer & rounds
 function getMyanmarTime(){ return new Date(new Date().getTime()+6.5*3600*1000); }
 function getRoundCountdown(){
     const mmt=getMyanmarTime();
@@ -125,12 +104,17 @@ function getRoundCountdown(){
     let countdown=30-(diffSec%30); if(countdown===0) countdown=30;
     return countdown;
 }
+
 function startRoundClock(){
     const timerEl=document.getElementById('timer');
     function updateTimer(){
         const countdown=getRoundCountdown(); timerEl.textContent=countdown;
         bettingStopped=countdown<=7;
-        if(countdown===1){ currentBetAmount=0; document.getElementById('currentBet').textContent=`Current Bet: 0 MMK`; playRound(); }
+        if(countdown===1){
+            currentBetAmount=0;
+            document.getElementById('currentBet').textContent=`Current Bet: 0 MMK`;
+            playRound();
+        }
     }
     updateTimer(); setInterval(updateTimer,1000);
 }
@@ -144,7 +128,7 @@ function generateNextRound(){
 
 function playRound(){
     roundCount++;
-    const sizeResult=nextRound.size, colorResult=nextRound.color, numberResult=nextRound.number;
+    const sizeResult=nextRound.size,colorResult=nextRound.color,numberResult=nextRound.number;
     generateNextRound();
 
     if(numberResult===lastNumber) numberSerial++; else { numberSerial=1; lastNumber=numberResult; }
@@ -159,7 +143,6 @@ function playRound(){
     historyArr.unshift({round:roundCount,size:sizeResult,color:colorResult,number:numberResult,win,userBet,amount:betAmount,numberSerial,colorSerial});
     if(historyArr.length>10) historyArr.pop();
     renderHistory();
-
     userBet=null;
 }
 
@@ -180,6 +163,5 @@ function checkDailyReset(){
     }
 }
 </script>
-
 </body>
-  </html>
+</html>
