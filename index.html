@@ -3,72 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wingo Game & Admin</title>
+<title>Wingo Game - Admin</title>
 <style>
-body { font-family: Arial, sans-serif; background:#111; color:white; margin:0; padding:0; text-align:center; }
-header { background:#00ffc3; color:#111; padding:10px; font-weight:bold; }
-input { padding:8px; margin:5px; border-radius:5px; border:none; }
-button { padding:8px 15px; border-radius:5px; border:none; cursor:pointer; margin:5px; }
-.container { padding:20px; }
-.hidden { display:none; }
+body { font-family: Arial, sans-serif; background:#111; color:white; text-align:center; margin:0; padding:0; }
+input, button { padding:8px; margin:5px; border-radius:5px; border:none; cursor:pointer; }
 table { width:100%; border-collapse: collapse; margin:10px 0; }
 th, td { border:1px solid #444; padding:5px; text-align:center; }
 th { background:#222; }
-.number-grid { display:flex; flex-wrap:wrap; justify-content:center; margin-top:10px; }
-.number-grid button {
-    width:60px; height:60px; border-radius:50%; margin:5px; font-weight:bold; font-size:1.2rem;
-    box-shadow:0 0 8px 3px rgba(255,255,255,0.5); transition: transform 0.2s, box-shadow 0.2s; border:none; cursor:pointer; color:white; border:2px solid #fff;
-}
-.number-grid button:hover { transform: scale(1.1); box-shadow:0 0 12px 4px rgba(255,255,255,0.7); }
-#nextRound { margin:15px; font-weight:bold; color:#00ffc3; font-size:1.2rem; }
 </style>
 </head>
 <body>
 
-<header id="headerTitle">Wingo Login</header>
-
-<!-- Login -->
-<div id="loginDiv" class="container">
-  <h2>Login</h2>
-  <input type="text" id="username" placeholder="Email / Phone"><br>
+<div class="container" id="loginDiv">
+  <h2>Admin Login</h2>
+  <input type="text" id="username" placeholder="Admin Username"><br>
   <input type="password" id="password" placeholder="Password"><br>
   <button id="loginBtn">Login</button>
 </div>
 
-<!-- Player Section -->
-<div id="playerDiv" class="container hidden">
-  <h2>Wingo Game</h2>
-  <div id="balance"></div>
-  <label>Bet Amount: <input type="number" id="betAmount" value="50000" min="30000"></label>
-  <h3>Add Bet</h3>
-  <div id="betButtons">
-    <button onclick="addBet(10)">+10</button>
-    <button onclick="addBet(100)">+100</button>
-    <button onclick="addBet(1000)">+1,000</button>
-    <button onclick="addBet(10000)">+10,000</button>
-  </div>
-  <div id="currentBet">Current Bet: 0 MMK</div>
-  <div id="timer">30</div>
-  <h3>Predict Size</h3>
-  <button onclick="placeBet('Big')">Big</button>
-  <button onclick="placeBet('Small')">Small</button>
-  <h3>Predict Color</h3>
-  <button onclick="placeBet('Red')">Red</button>
-  <button onclick="placeBet('Green')">Green</button>
-  <button onclick="placeBet('Purple')">Purple</button>
-  <h3>Predict Number</h3>
-  <div id="numbers" class="number-grid"></div>
-  <div id="resultSection"></div>
-  <div id="historyDiv">
-    <h3>Last 10 Outcomes & Serials</h3>
-    <ul id="historyList"></ul>
-  </div>
-</div>
-
-<!-- Admin Section -->
-<div id="adminDiv" class="container hidden">
-  <div id="nextRound"></div>
+<div class="container hidden" id="adminDiv">
   <h2>Admin Dashboard</h2>
+  <div id="nextRound"></div>
   <h3>Players</h3>
   <table id="playersTable">
     <thead><tr><th>Player</th><th>Balance</th><th>Adjust</th><th>Action</th></tr></thead>
@@ -86,106 +41,7 @@ th { background:#222; }
 </div>
 
 <script>
-// --- Global Variables ---
-let role=null, currentUser='', balance=100000, userBet=null, betAmount=50000, currentBetAmount=0, bettingStopped=false;
-let historyArr=[], roundCount=0, lastNumber=null, lastColor=null, numberSerial=0, colorSerial=0;
-const ROUND_DURATION=30, ADMIN_USERNAME="Naing", ADMIN_PASSWORD="28";
+const ADMIN_USERNAME="Naing", ADMIN_PASSWORD="28";
 let nextRound={};
 
-// --- Login ---
-document.getElementById('loginBtn').addEventListener('click', function(){
-    const username=document.getElementById('username').value.trim();
-    const password=document.getElementById('password').value.trim();
-    if(!username || !password){ alert("Enter username/password"); return; }
-
-    if(username===ADMIN_USERNAME && password===ADMIN_PASSWORD){
-        role='admin';
-        document.getElementById('loginDiv').classList.add('hidden');
-        document.getElementById('adminDiv').classList.remove('hidden');
-        initAdmin();
-        return;
-    }
-
-    // Player login
-    role='player'; currentUser=username;
-    if(!localStorage.getItem(currentUser+'_balance')) localStorage.setItem(currentUser+'_balance',100000);
-    document.getElementById('loginDiv').classList.add('hidden');
-    document.getElementById('playerDiv').classList.remove('hidden');
-    initPlayer(username);
-});
-
-// --- Admin init ---
-function initAdmin(){
-    generateNextRound(); displayNextRound();
-    loadPlayers(); loadHistory();
-    setInterval(()=>{ loadPlayers(); loadHistory(); displayNextRound(); },3000);
-}
-
-// --- Player init ---
-function initPlayer(username){
-    balance=parseInt(localStorage.getItem(currentUser+'_balance')||100000);
-    initNumbers(); updateBalance(); generateNextRound(); startRoundClock();
-    setInterval(checkDailyReset,60000);
-}
-
-// --- Numbers ---
-function initNumbers(){
-    const container=document.getElementById('numbers'); container.innerHTML='';
-    for(let i=0;i<=9;i++){
-        const btn=document.createElement('button'); btn.textContent=i;
-        if(i===0) btn.style.background='linear-gradient(135deg, red 50%, rebeccapurple 50%)';
-        else if(i>=1 && i<=4) btn.style.background='red';
-        else if(i===5) btn.style.background='linear-gradient(135deg, green 50%, rebeccapurple 50%)';
-        else btn.style.background='green';
-        btn.onclick=()=>placeBet(i); container.appendChild(btn);
-    }
-}
-
-// --- Balance ---
-function updateBalance(){
-    document.getElementById('balance').textContent=`Balance: ${balance.toLocaleString()} MMK`;
-    localStorage.setItem(currentUser+'_balance',balance);
-}
-
-// --- Betting ---
-function addBet(amount){
-    if(bettingStopped){ alert("Betting closed"); return; }
-    currentBetAmount+=amount;
-    document.getElementById('currentBet').textContent=`Current Bet: ${currentBetAmount.toLocaleString()} MMK`;
-}
-function placeBet(choice){
-    if(bettingStopped){ alert("Betting closed"); return; }
-    betAmount=currentBetAmount;
-    if(betAmount<30000){ alert("Minimum bet 30,000"); return; }
-    if(betAmount>balance){ alert("Insufficient balance"); return; }
-    userBet=choice;
-    document.getElementById('resultSection').textContent=`You bet ${betAmount.toLocaleString()} on ${choice}`;
-}
-
-// --- Myanmar Time ---
-function getMyanmarTime(){ return new Date(new Date().getTime()+6.5*60*60*1000); }
-function getRoundCountdown(){
-    const mmt=getMyanmarTime();
-    const startDay=new Date(mmt); startDay.setHours(6,30,0,0);
-    let diffSec=Math.floor((mmt-startDay)/1000);
-    let countdown=ROUND_DURATION-(diffSec%ROUND_DURATION); if(countdown===0) countdown=ROUND_DURATION;
-    return countdown;
-}
-function startRoundClock(){
-    const timerEl=document.getElementById('timer');
-    function updateTimer(){
-        const countdown=getRoundCountdown(); timerEl.textContent=countdown;
-        bettingStopped=countdown<=7;
-        if(countdown===1){ currentBetAmount=0; document.getElementById('currentBet').textContent=`Current Bet: 0 MMK`; playRound(); }
-    }
-    updateTimer(); setInterval(updateTimer,1000);
-}
-
-// --- Next round ---
-function generateNextRound(){
-    const sizes=['Big','Small'], colors=['Red','Green','Purple'], numbers=[0,1,2,3,4,5,6,7,8,9];
-    nextRound={ size: sizes[Math.floor(Math.random()*sizes.length)],
-                color: colors[Math.floor(Math.random()*colors.length)],
-                number: numbers[Math.floor(Math.random()*numbers.length)] };
-}
-function displayNextRound(){ if(role==='admin'){ document.getElementById('nextRound').textContent=`Next Winning Number: ${nextRound.number} | Color:
+document
