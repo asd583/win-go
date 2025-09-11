@@ -3,29 +3,68 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wingo Login Portal</title>
+<title>Wingo Login / Signup</title>
 <style>
-body { font-family: Arial, sans-serif; background:#111; color:white; text-align:center; margin:0; padding:0; }
-h1 { margin-top:50px; color:#00ffc3; }
-button { padding:15px 25px; margin:20px; border-radius:10px; border:none; cursor:pointer; font-size:18px; background:#00ffc3; color:#111; transition: transform 0.2s; }
+body { font-family: Arial; background:#111; color:white; text-align:center; margin:0; padding:0; }
+.container { margin-top:50px; }
+input { padding:8px; margin:5px; border-radius:5px; border:none; width:200px; }
+button { padding:10px 20px; margin:5px; border-radius:5px; border:none; cursor:pointer; background:#00ffc3; color:#111; font-weight:bold; transition: transform 0.2s; }
 button:hover { transform: scale(1.1); }
+p { color:#ccc; }
 </style>
 </head>
 <body>
 
-<h1>Welcome to Wingo Game</h1>
-<p>Select your login type:</p>
+<div class="container" id="authDiv">
+  <h1>Wingo Portal</h1>
 
-<button onclick="goToPlayer()">Player Login</button>
-<button onclick="goToAdmin()">Admin Login</button>
+  <div id="signupDiv">
+    <h3>Signup</h3>
+    <input type="text" id="signupUser" placeholder="Username / Email / Phone"><br>
+    <input type="password" id="signupPass" placeholder="Password"><br>
+    <button onclick="signup()">Signup</button>
+    <p>Already have account? <span style="color:#00ffc3; cursor:pointer;" onclick="showSignin()">Sign In</span></p>
+  </div>
+
+  <div id="signinDiv" class="hidden">
+    <h3>Sign In</h3>
+    <input type="text" id="signinUser" placeholder="Username / Email / Phone"><br>
+    <input type="password" id="signinPass" placeholder="Password"><br>
+    <button onclick="signin()">Sign In</button>
+    <p>New user? <span style="color:#00ffc3; cursor:pointer;" onclick="showSignup()">Sign Up</span></p>
+  </div>
+</div>
 
 <script>
-function goToPlayer(){
-    window.location.href = "user.html";
+function showSignin(){ document.getElementById('signupDiv').classList.add('hidden'); document.getElementById('signinDiv').classList.remove('hidden'); }
+function showSignup(){ document.getElementById('signinDiv').classList.add('hidden'); document.getElementById('signupDiv').classList.remove('hidden'); }
+
+// --- Signup ---
+function signup(){
+    const user=document.getElementById('signupUser').value.trim();
+    const pass=document.getElementById('signupPass').value.trim();
+    if(!user || !pass){ alert("Enter username and password"); return; }
+    if(localStorage.getItem(user+'_pass')){ alert("User already exists"); return; }
+    localStorage.setItem(user+'_pass', pass);
+    localStorage.setItem(user+'_balance', 100000); // initial balance
+    alert("Signup successful! Please login.");
+    showSignin();
 }
 
-function goToAdmin(){
-    window.location.href = "admin.html";
+// --- Signin ---
+function signin(){
+    const user=document.getElementById('signinUser').value.trim();
+    const pass=document.getElementById('signinPass').value.trim();
+    if(!user || !pass){ alert("Enter username and password"); return; }
+
+    // Admin login
+    if(user==='Naing' && pass==='28'){ window.location.href='admin.html'; return; }
+
+    // Player login
+    const storedPass=localStorage.getItem(user+'_pass');
+    if(!storedPass || storedPass!==pass){ alert("Invalid credentials"); return; }
+    localStorage.setItem('currentUser', user);
+    window.location.href='user.html';
 }
 </script>
 
