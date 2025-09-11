@@ -15,7 +15,25 @@ table { width:100%; border-collapse: collapse; margin:10px 0; }
 th, td { border:1px solid #444; padding:5px; text-align:center; }
 th { background:#222; }
 .number-grid { display:flex; flex-wrap:wrap; justify-content:center; margin-top:10px; }
-.number-grid button { width:50px; height:50px; border-radius:50%; margin:3px; font-weight:bold; font-size:1rem; box-shadow:0 0 6px 2px rgba(255,255,255,0.5); }
+.number-grid button {
+    width:60px;
+    height:60px;
+    border-radius:50%;
+    margin:5px;
+    font-weight:bold;
+    font-size:1.2rem;
+    box-shadow:0 0 8px 3px rgba(255,255,255,0.5);
+    transition: transform 0.2s, box-shadow 0.2s;
+    border:none;
+    cursor:pointer;
+    color:white;
+    font-weight:bold;
+    border:2px solid #fff;
+}
+.number-grid button:hover{
+    transform: scale(1.1);
+    box-shadow:0 0 12px 4px rgba(255,255,255,0.7);
+}
 #nextRound { margin:15px; font-weight:bold; color:#00ffc3; font-size:1.2rem; }
 </style>
 </head>
@@ -209,122 +227,4 @@ function startRoundClock(){
         }
     }
     updateTimer();
-    setInterval(updateTimer,1000);
-}
-
-// --- Next Round ---
-function generateNextRound() {
-    const sizes=['Big','Small'];
-    const colors=['Red','Green','Purple'];
-    const numbers=[0,1,2,3,4,5,6,7,8,9];
-    const sizeResult = sizes[Math.floor(Math.random()*sizes.length)];
-    const colorResult = colors[Math.floor(Math.random()*colors.length)];
-    const numberResult = numbers[Math.floor(Math.random()*numbers.length)];
-    nextRound = {size:sizeResult, color:colorResult, number:numberResult};
-}
-
-function displayNextRound(){
-    if(role==='admin'){
-        const nextDiv = document.getElementById('nextRound');
-        nextDiv.textContent = `Next Winning Number: ${nextRound.number} | Color: ${nextRound.color} | Size: ${nextRound.size}`;
-    }
-}
-
-// --- Play Round ---
-function playRound(){
-    roundCount++;
-    const sizeResult = nextRound.size;
-    const colorResult = nextRound.color;
-    const numberResult = nextRound.number;
-
-    generateNextRound(); // next round
-    displayNextRound();
-
-    if(numberResult===lastNumber) numberSerial++; else { numberSerial=1; lastNumber=numberResult; }
-    if(colorResult===lastColor) colorSerial++; else { colorSerial=1; lastColor=colorResult; }
-
-    let win=false;
-    if(userBet===sizeResult||userBet===colorResult||userBet===numberResult) win=true;
-    if(win) balance+=betAmount; else balance-=betAmount;
-    updateBalance();
-
-    historyArr.unshift({round:roundCount,size:sizeResult,color:colorResult,number:numberResult,win,userBet,amount:betAmount,numberSerial,colorSerial});
-    if(historyArr.length>10) historyArr.pop();
-    renderHistory();
-
-    const allBets=JSON.parse(localStorage.getItem('bets')||'[]');
-    allBets.push({
-        player:currentUser,bet:userBet,amount:betAmount,size:sizeResult,color:colorResult,number:numberResult,
-        win, timestamp:getMyanmarTime().toLocaleString(),balance,numberSerial,colorSerial,round:roundCount
-    });
-    localStorage.setItem('bets', JSON.stringify(allBets));
-    userBet=null;
-    if(role==='admin') loadHistory();
-}
-
-// --- Render History ---
-function renderHistory(){
-    const ul=document.getElementById('historyList');
-    if(!ul) return;
-    ul.innerHTML='';
-    historyArr.forEach(h=>{
-        const li=document.createElement('li');
-        li.textContent=`Round ${h.round}: Bet:${h.userBet} Amt:${h.amount.toLocaleString()} → Size:${h.size}, Color:${h.color}, Number:${h.number} (#${h.numberSerial},#${h.colorSerial}) → ${h.win?'WIN':'LOSE'}`;
-        ul.appendChild(li);
-    });
-}
-
-// --- Daily Reset ---
-function checkDailyReset(){
-    const mmt=getMyanmarTime();
-    if(mmt.getHours()===6 && mmt.getMinutes()===30){
-        historyArr=[]; roundCount=0; numberSerial=0;colorSerial=0; lastNumber=null;lastColor=null;
-        renderHistory();
-    }
-}
-
-// --- Admin Functions ---
-function loadPlayers(){
-    const tbody=document.querySelector('#playersTable tbody');
-    tbody.innerHTML='';
-    for(const key in localStorage){
-        if(key.endsWith('_balance')){
-            const player = key.replace('_balance','');
-            const bal = parseInt(localStorage.getItem(key));
-            const tr=document.createElement('tr');
-            tr.innerHTML=`<td>${player}</td><td id="${player}_bal">${bal.toLocaleString()}</td>
-            <td><input type="number" id="${player}_input" value="0"></td>
-            <td><button onclick="updateBalanceAdmin('${player}')">Update</button></td>`;
-            tbody.appendChild(tr);
-        }
-    }
-}
-
-function updateBalanceAdmin(player){
-    const val=parseInt(document.getElementById(player+'_input').value)||0;
-    let bal=parseInt(localStorage.getItem(player+'_balance')||0);
-    bal += val;
-    localStorage.setItem(player+'_balance', bal);
-    loadPlayers();
-}
-
-function loadHistory(){
-    const tbody=document.querySelector('#historyTable tbody');
-    tbody.innerHTML='';
-    const allBets=JSON.parse(localStorage.getItem('bets')||'[]');
-    allBets.slice(-50).reverse().forEach(b=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${b.round}</td><td>${b.player}</td><td>${b.bet}</td><td>${b.amount}</td>
-        <td>${b.size}</td><td>${b.color}</td><td>${b.number}</td><td>${b.win?'WIN':'LOSE'}</td>
-        <td>${b.numberSerial}</td><td>${b.colorSerial}</td><td>${b.timestamp}</td>`;
-        tbody.appendChild(tr);
-    });
-}
-
-// Initialize
-generateNextRound();
-displayNextRound();
-</script>
-
-</body>
-</html>a
+    setInterval
