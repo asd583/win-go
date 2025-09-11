@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wingo Admin</title>
+<style>
+body { font-family: Arial; background:#111; color:white; text-align:center; margin:0; padding:0; }
+input, button { padding:8px; margin:5px; border-radius:5px; border:none; cursor:pointer; }
+table { width:100%; border-collapse: collapse; margin:10px 0; }
+th, td { border:1px solid #444; padding:5px; text-align:center; }
+th { background:#222; }
+</style>
+</head>
+<body>
+
+<div id="loginDiv" class="container">
+  <h2>Admin Login</h2>
+  <input type="text" id="username" placeholder="Username"><br>
+  <input type="password" id="password" placeholder="Password"><br>
+  <button id="loginBtn">Login</button>
+</div>
+
+<div id="adminDiv" class="container hidden">
+  <h2>Admin Dashboard</h2>
+  <div id="nextRound"></div>
+  <h3>Players</h3>
+  <table id="playersTable">
+    <thead><tr><th>Player</th><th>Balance</th><th>Adjust</th><th>Action</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <h3>Live History</h3>
+  <table id="historyTable">
+    <thead><tr>
+      <th>Round</th><th>Player</th><th>Bet</th><th>Amount</th>
+      <th>Size</th><th>Color</th><th>Number</th><th>Win/Lose</th>
+      <th>#Number</th><th>#Color</th><th>Timestamp</th>
+    </tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+const ADMIN_USERNAME="Naing", ADMIN_PASSWORD="28";
+let nextRound={};
+document.getElementById('loginBtn').addEventListener('click', function(){
+    const u=document.getElementById('username').value.trim();
+    const p=document.getElementById('password').value.trim();
+    if(u===ADMIN_USERNAME && p===ADMIN_PASSWORD){
+        document.getElementById('loginDiv').classList.add('hidden');
+        document.getElementById('adminDiv').classList.remove('hidden');
+        initAdmin();
+    } else alert("Invalid admin credentials");
+});
+
+function initAdmin(){
+    generateNextRound();
+    displayNextRound();
+    loadPlayers();
